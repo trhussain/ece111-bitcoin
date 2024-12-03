@@ -371,8 +371,50 @@ begin
 		// -----------------------
 	end 
 	WRITE: begin 
-		$display("in write state, nothing");
-		done <= 1;
+		 cur_we <= 1;
+		 cur_addr <= output_addr -1;
+        if(offset < 8) begin
+            case (offset)
+                0: begin
+					 
+					 mem_write_data <= h0_my[0];
+					 end
+                1: begin
+					 
+					 mem_write_data <= h0_my[1];
+                end
+					 2: begin
+					 mem_write_data <= h0_my[2];
+                end
+					 3: begin
+					 
+					 mem_write_data <= h0_my[3];
+                end
+					 4: begin
+					 
+					 mem_write_data <= h0_my[4];
+                end
+					 5: begin
+					 
+					 mem_write_data <= h0_my[5];
+                end
+					 6: begin
+					 
+					 mem_write_data <= h0_my[6];
+                end
+					 7: begin
+					 
+					 mem_write_data <= h0_my[7];
+					 end
+            endcase
+			
+		  state <= WRITE;
+        offset <= offset + 1;
+		  end 
+        else begin
+				state <= IDLE; // done is generated when state is idle
+				done <= 1;
+        end
 	end 
 	
 	endcase
