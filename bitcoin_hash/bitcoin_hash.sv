@@ -173,7 +173,13 @@ begin
 		else begin 
 			// Flags to switch between word expansion, hash rounds, & hash reset
 		   // or have nonce_rounds counter, hash reset flag. once nonce_rounds > num_nonces, reset_hash & nonce_rounds
-				if (nonce_counter >= num_nonces) begin
+				if (nonce_counter > num_nonces) begin
+							 $display("Phase 2 end ");
+							 $display("---------------------------");	 
+							 for (int n = 0; n < num_nonces; n++) begin
+									$display("h0_my[%x]: %x", n, h0_my[n]);
+
+							 end
 							b2_flag <= 1;
 							nonce_counter <= 0;
 							state <= BLOCK_3;
@@ -227,7 +233,7 @@ begin
 	
 	BLOCK_3: begin 
 	 if (nonce_counter >= num_nonces) begin
-				$display("TAHGSEEN DATA FINAL HASH BLOC2 PHASE 2 ");
+				$display("Phase 3 end ");
 				 $display("---------------------------");	 
 				 for (int n = 0; n < num_nonces; n++) begin
 						$display("h0_my[%x]: %x", n, h0_my[n]);
