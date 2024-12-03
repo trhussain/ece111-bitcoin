@@ -256,12 +256,7 @@ begin
         h6[n] = h6[n] + g;
         h7[n] = h7[n] + h;
     end
-    $display("TB DATA FINAL HASH BLOCk2");
-    $display("---------------------------");	 
-    for (n = 0; n < NUM_NONCES; n++) begin
-			$display("h0[%x]: %x", n, h0[n]);
 
-	 end
     
 // 3. COMPUTE SECOND HASH FOR EACH NONCE
 
@@ -327,7 +322,12 @@ begin
         h6[n] = h6[n] + g;
         h7[n] = h7[n] + h;
     end
+    $display("TB DATA FINAL HASH BLOCk2 PHASE 3");
+    $display("---------------------------");	 
+    for (n = 0; n < NUM_NONCES; n++) begin
+			$display("h0[%x]: %x", n, h0[n]);
 
+	 end
 // WAIT UNTIL EVERY IS DONE, THEN DISPLAY HASH RESULTS
 
     wait (done == 1);
