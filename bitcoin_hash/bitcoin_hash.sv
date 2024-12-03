@@ -142,7 +142,7 @@ begin
 		end 
 		
 	 end 
-	BLOCK: begin 
+	 BLOCK: begin 
 		// -----------------------
 		// Block 1 computation 
 		// -----------------------
@@ -174,15 +174,17 @@ begin
 			// Flags to switch between word expansion, hash rounds, & hash reset
 		   // or have nonce_rounds counter, hash reset flag. once nonce_rounds > num_nonces, reset_hash & nonce_rounds
 				if (nonce_counter > num_nonces) begin
-							 $display("Phase 2 end ");
-							 $display("---------------------------");	 
-							 for (int n = 0; n < num_nonces; n++) begin
-									$display("h0_my[%x]: %x", n, h0_my[n]);
+					$display("Phase 2 end ");
+					$display("---------------------------");	 
+					for (int n = 0; n < num_nonces; n++) begin
+						$display("h0_my[%x]: %x", n, h0_my[n]);
 
-							 end
-							b2_flag <= 1;
-							nonce_counter <= 0;
-							state <= BLOCK_3;
+					end
+					b2_flag <= 1;
+					nonce_counter <= 0;
+				   t <= 0;
+					
+					state <= BLOCK_3;
 				end
 			   else begin 
 					m2[3] = nonce_counter;
@@ -232,62 +234,73 @@ begin
 	
 	
 	BLOCK_3: begin 
-	 if (nonce_counter >= num_nonces) begin
-				$display("Phase 3 end ");
-				 $display("---------------------------");	 
-				 for (int n = 0; n < num_nonces; n++) begin
-						$display("h0_my[%x]: %x", n, h0_my[n]);
-
-				 end
-				 state <= WRITE;
-	 end
-	  w_my[0] <= h0_my[nonce_counter];
-	  w_my[1] <= h1_my[nonce_counter];
-	  w_my[2] <= h2_my[nonce_counter];
-	  w_my[3] <= h3_my[nonce_counter];
-	  w_my[4] <= h4_my[nonce_counter];
-	  w_my[5] <= h5_my[nonce_counter];
-	  w_my[6] <= h6_my[nonce_counter];
-	  w_my[7] <= h7_my[nonce_counter];
-	  w_my[8] <= 32'h80000000; // padding
-	  w_my[9] <= 32'h00000000;
-	  w_my[10] <= 32'h00000000;
-	  w_my[11] <= 32'h00000000;
-	  w_my[12] <= 32'h00000000;
-	  w_my[13] <= 32'h00000000;
-	  w_my[14] <= 32'h00000000;
-	  w_my[15] <= 32'd256; 
-	  
-	  h0_my[nonce_counter] <= 32'h6a09e667;
-	  h1_my[nonce_counter] <= 32'hbb67ae85;
-	  h2_my[nonce_counter] <= 32'h3c6ef372;
-	  h3_my[nonce_counter] <= 32'ha54ff53a;
-	  h4_my[nonce_counter] <= 32'h510e527f;
-	  h5_my[nonce_counter] <= 32'h9b05688c;
-	  h6_my[nonce_counter] <= 32'h1f83d9ab;
-	  h7_my[nonce_counter] <= 32'h5be0cd19;
-
-	  a_my <= 32'h6a09e667;
-	  b_my <= 32'hbb67ae85;
-	  c_my <= 32'h3c6ef372;
-	  d_my <= 32'ha54ff53a;
-	  e_my <= 32'h510e527f;
-	  f_my <= 32'h9b05688c;
-	  g_my <= 32'h1f83d9ab;
-	  h_my <= 32'h5be0cd19;
-	  if (t < 64) begin
-
-			s0_my = rightrotate(w_my[t-15], 7) ^ rightrotate(w_my[t-15], 18) ^ (w_my[t-15] >> 3);
-			s1_my = rightrotate(w_my[t-2], 17) ^ rightrotate(w_my[t-2], 19) ^ (w_my[t-2] >> 10);
-			w_my[t] = w_my[t-16] + s0_my + w_my[t-7] + s1_my;
-         t <= t + 1; // Increment t for the next clock cycle
-
-	  end
-	  else begin 
-			state <= COMPUTE;
-	  end
+		 if (nonce_counter >= num_nonces) begin
+			  $display("Phase 3 end ");
+			  $display("---------------------------");	 
+			  for (int n = 0; n < num_nonces; n++) begin
+					$display("h0_my[%x]: %x", n, h0_my[n]);
+			  end
+			  state <= WRITE;
+		 end
+		 
+		 // Initialize w_my from h_my, but do it only once for each nonce
+		 if (t == 0) begin
+			  w_my[0] <= h0_my[nonce_counter];
+			  w_my[1] <= h1_my[nonce_counter];
+			  w_my[2] <= h2_my[nonce_counter];
+			  w_my[3] <= h3_my[nonce_counter];
+			  w_my[4] <= h4_my[nonce_counter];
+			  w_my[5] <= h5_my[nonce_counter];
+			  w_my[6] <= h6_my[nonce_counter];
+			  w_my[7] <= h7_my[nonce_counter];
+			  w_my[8] <= 32'h80000000; // padding
+			  w_my[9] <= 32'h00000000;
+			  w_my[10] <= 32'h00000000;
+			  w_my[11] <= 32'h00000000;
+			  w_my[12] <= 32'h00000000;
+			  w_my[13] <= 32'h00000000;
+			  w_my[14] <= 32'h00000000;
+			  w_my[15] <= 32'd256; 
+			  
+			  t <= t + 1; // Increment t to move to the next stage
+		 end
+		 else if (t == 1) begin
+			  // Only update h_my after w_my has been initialized
+			  h0_my[nonce_counter] <= 32'h6a09e667;
+			  h1_my[nonce_counter] <= 32'hbb67ae85;
+			  h2_my[nonce_counter] <= 32'h3c6ef372;
+			  h3_my[nonce_counter] <= 32'ha54ff53a;
+			  h4_my[nonce_counter] <= 32'h510e527f;
+			  h5_my[nonce_counter] <= 32'h9b05688c;
+			  h6_my[nonce_counter] <= 32'h1f83d9ab;
+			  h7_my[nonce_counter] <= 32'h5be0cd19;
 	
+			  a_my <= 32'h6a09e667;
+			  b_my <= 32'hbb67ae85;
+			  c_my <= 32'h3c6ef372;
+			  d_my <= 32'ha54ff53a;
+			  e_my <= 32'h510e527f;
+			  f_my <= 32'h9b05688c;
+			  g_my <= 32'h1f83d9ab;
+			  h_my <= 32'h5be0cd19;
+	
+			  t <= 16; // Increment t to move to the computation stage
+		 end
+		 else if (t >= 15 && t < 64) begin
+			  // Compute the extended w_my values
+			  s0_my = rightrotate(w_my[t-15], 7) ^ rightrotate(w_my[t-15], 18) ^ (w_my[t-15] >> 3);
+			  s1_my = rightrotate(w_my[t-2], 17) ^ rightrotate(w_my[t-2], 19) ^ (w_my[t-2] >> 10);
+			  w_my[t] = w_my[t-16] + s0_my + w_my[t-7] + s1_my;
+	
+			  t <= t + 1; // Increment t for the next clock cycle
+		 end
+		 else if (t >= 64) begin 
+			  b1_2 <= 2;
+			  state <= COMPUTE;
+			  t <= 0; // Reset t for the next nonce or phase
+		 end
 	end
+
 	COMPUTE: begin 
 		// -----------------------
 		// Block 1 computation 
@@ -347,7 +360,7 @@ begin
 					 end
 					 else begin 
 					 	
-						  t <= 16;	 
+						  t <= 0;	 
 						  state <= BLOCK_3;
 					 end
 					  

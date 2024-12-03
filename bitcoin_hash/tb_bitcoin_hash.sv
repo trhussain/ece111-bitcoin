@@ -259,8 +259,9 @@ begin
 
     
 // 3. COMPUTE SECOND HASH FOR EACH NONCE
-
+    $display("Starting phase 3");
     for (n = 0; n < NUM_NONCES; n++) begin
+		  $display("n: %x", n);
 
         // WORD EXPANSION
 
@@ -278,7 +279,9 @@ begin
             w[t] = 32'h00000000;
         end
         w[15] = 32'd256; // SIZE = 256 BITS
-
+		  $display("Pre w[0] value: %x", w[0]);
+		  $display("w[7] value: %x", w[7]);
+		  
         for (t = 16; t < 64; t++) begin
             s0 = rightrotate(w[t-15], 7) ^ rightrotate(w[t-15], 18) ^ (w[t-15] >> 3);
             s1 = rightrotate(w[t-2], 17) ^ rightrotate(w[t-2], 19) ^ (w[t-2] >> 10);
@@ -304,15 +307,23 @@ begin
         f = 32'h9b05688c;
         g = 32'h1f83d9ab;
         h = 32'h5be0cd19;
-
+		  $display("Post w[64] value: %x", w[63]);
+		  
+		  $display("Block done, Hash next ");
+		  $display("------------------------------------------");
+		  
         // HASH ROUNDS
-
+		  $display("a before 64 hash: %x", a);
+			
         for (t = 0; t < 64; t++) begin
             {a, b, c, d, e, f, g, h} = sha256_op(a, b, c, d, e, f, g, h, w[t], t);
         end
 
         // FINAL HASH FOR SECOND HASH
+		  $display("a after 64 hash: %x", a);
 
+		  $display("Pre h0[%x] value: %x", n,h0[n]);
+		  
         h0[n] = h0[n] + a;
         h1[n] = h1[n] + b;
         h2[n] = h2[n] + c;
@@ -321,6 +332,10 @@ begin
         h5[n] = h5[n] + f;
         h6[n] = h6[n] + g;
         h7[n] = h7[n] + h;
+		  
+		  $display("Post h0[%x] value: %x", n,h0[n]);
+		  $display("------------------------------------------");
+		  
     end
     $display("TB DATA FINAL HASH BLOCk2 PHASE 3");
     $display("---------------------------");	 
