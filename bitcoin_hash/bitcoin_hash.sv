@@ -32,16 +32,23 @@ logic   [31:0] h_my[num_nonces];
 logic   [31:0] fh0_my, fh1_my, fh2_my, fh3_my, fh4_my, fh5_my, fh6_my, fh7_my;
 
 logic [31:0] h0_phase1, h1_phase1, h2_phase1, h3_phase1, h4_phase1, h5_phase1, h6_phase1, h7_phase1;
+logic   [31:0] h0const;
+logic   [31:0] h1const;
+logic   [31:0] h2const;
+logic   [31:0] h3const;
+logic   [31:0] h4const;
+logic   [31:0] h5const;
+logic   [31:0] h6const;
+logic   [31:0] h7const;
 
-
-assign 			h0const = 32'h0x6a09e667;
-assign 			h1const = 32'h0xbb67ae85;
-assign 			h2const = 32'h0x3c6ef372;
-assign 			h3const = 32'h0xa54ff53a;
-assign 			h4const = 32'h0x510e527f;
-assign 			h5const = 32'h0x9b05688c;
-assign 			h6const = 32'h0x1f83d9ab;
-assign 			h7const = 32'h0x5be0cd19;
+assign 			h0const = 32'h6a09e667;
+assign 			h1const = 32'hbb67ae85;
+assign 			h2const = 32'h3c6ef372;
+assign 			h3const = 32'ha54ff53a;
+assign 			h4const = 32'h510e527f;
+assign 			h5const = 32'h9b05688c;
+assign 			h6const = 32'h1f83d9ab;
+assign 			h7const = 32'h5be0cd19;
 
 logic   [31:0] s1_my, s0_my;
 logic   [31:0] w_my[num_nonces][16];
@@ -134,24 +141,25 @@ begin
 
             cur_we <= 0; 
 			   cur_addr <= message_addr; 
-	         h0_my[0] <= h0const;
-				h1_my[0] <= h1const;
-				h2_my[0] <= h2const;
-				h3_my[0] <= h3const;
-				h4_my[0] <= h4const;
-				h5_my[0] <= h5const;
-				h6_my[0] <= h6const;
-				h7_my[0] <= h7const;
-			
-				a_my[0] <= h0const;
-				b_my[0] <= h1const;
-				c_my[0] <= h2const;
-				d_my[0] <= h3const;
-				e_my[0] <= h4const;
-				f_my[0] <= h5const;
-				g_my[0] <= h6const;
-				h_my[0] <= h7const;
-			
+				for(int m=0; m<num_nonces; m++) begin
+					h0_my[m] <= h0const;
+					h1_my[m] <= h1const;
+					h2_my[m] <= h2const;
+					h3_my[m] <= h3const;
+					h4_my[m] <= h4const;
+					h5_my[m] <= h5const;
+					h6_my[m] <= h6const;
+					h7_my[m] <= h7const;
+				
+					a_my[m] <= h0const;
+					b_my[m] <= h1const;
+					c_my[m] <= h2const;
+					d_my[m] <= h3const;
+					e_my[m] <= h4const;
+					f_my[m] <= h5const;
+					g_my[m] <= h6const;
+					h_my[m] <= h7const;
+				end
 			offset <= 0;
 			state <= READ;
 		 end
@@ -166,11 +174,11 @@ begin
 		if (offset < 21) begin 
 			message[offset-1] <= mem_read_data;
 			offset <= offset + 1;
-			if (offset > 5) begin 
-				w_my[0][offset-6] <= message[offset-6];
-			end 
 		end
 		else begin 
+			for(int x = 0; x < 16; x++) begin
+				w_my[0][x] <= message[x];
+			end
 			state <= PHASE_1;
 			offset <= 0;
 	 
@@ -183,18 +191,26 @@ begin
 					  if (t < 16) begin
 							{a_my[0], b_my[0], c_my[0], d_my[0], e_my[0], f_my[0], g_my[0], h_my[0]} = sha256_op(a_my[0], b_my[0], c_my[0], d_my[0], e_my[0], f_my[0], g_my[0], h_my[0], w_my[0][t], t);
 					  end else begin
-							for(int n = 0; n < 15; n++) begin
-									w_my[0][n] <= w_my[0][n+1];
+							for(int x = 0; x < 15; x++) begin
+									w_my[0][x] <= w_my[0][x+1];
 							end							
 							w_my[0][15] <= wtnew(0);
-					  
+							if (t > 16) {a_my[0], b_my[0], c_my[0], d_my[0], e_my[0], f_my[0], g_my[0], h_my[0]} = sha256_op(a_my[0], b_my[0], c_my[0], d_my[0], e_my[0], f_my[0], g_my[0], h_my[0], w_my[0][15], t-1);
 					  end
 	
 					  t <= t + 1; // Increment t for the next clock cycle
 					  state <= PHASE_1;
 			end	 	
 			else begin 
-
+					  h0_my[0] <= h0_my[0] + a_my[0];
+					  h1_my[0] <= h1_my[0] + b_my[0];
+					  h2_my[0] <= h2_my[0] + c_my[0];
+					  h3_my[0] <= h3_my[0] + d_my[0];
+					  h4_my[0] <= h4_my[0] + e_my[0];
+					  h5_my[0] <= h5_my[0] + f_my[0];
+					  h6_my[0] <= h6_my[0] + g_my[0];
+					  h7_my[0] <= h7_my[0] + h_my[0];
+					  
 					  h0_phase1 <= h0_my[0] + a_my[0];
 					  h1_phase1 <= h1_my[0] + b_my[0];
 					  h2_phase1 <= h2_my[0] + c_my[0];
@@ -224,8 +240,12 @@ begin
 		 $display("---------------------------");	 
 		 $display("h0_phase1: %x", n, h0_phase1);
 		 $display("---------------------------");	 
-		 
-		 done <= 1;
+		 for (int y = 0; y < num_nonces; y++) begin
+			 for(int x = 0; x < 15; x++) begin
+					$display("wmy[%x][%x]: %x", y, x, w_my[y][x]);
+			 end
+		 end
+			 done <= 1;
 		 
 	end 
 	
