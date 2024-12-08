@@ -7,7 +7,7 @@ module bitcoin_hash (input logic        clk, reset_n, start,
 
 parameter num_nonces = 16;
 
-enum logic [2:0] {IDLE, READ, BLOCK, BLOCK_3, COMPUTE, WRITE} state;
+enum logic [2:0] {IDLE, READ, PHASE_1, PHASE_2, PHASE_3, COMPUTE, WRITE} state;
 logic [31:0] hout[num_nonces];
 
 logic   [31:0] h0_my[num_nonces];
@@ -18,17 +18,39 @@ logic   [31:0] h4_my[num_nonces];
 logic   [31:0] h5_my[num_nonces];
 logic   [31:0] h6_my[num_nonces];
 logic   [31:0] h7_my[num_nonces];
+
+logic   [31:0] a_my[num_nonces];
+logic   [31:0] b_my[num_nonces];
+logic   [31:0] c_my[num_nonces];
+logic   [31:0] d_my[num_nonces];
+logic   [31:0] e_my[num_nonces];
+logic   [31:0] f_my[num_nonces];
+logic   [31:0] g_my[num_nonces];
+logic   [31:0] h_my[num_nonces];
+
+
 logic   [31:0] fh0_my, fh1_my, fh2_my, fh3_my, fh4_my, fh5_my, fh6_my, fh7_my;
-logic   [31:0] a_my, b_my, c_my, d_my, e_my, f_my, g_my, h_my;
+
+logic [31:0] h0_phase1, h1_phase1, h2_phase1, h3_phase1, h4_phase1, h5_phase1, h6_phase1, h7_phase1;
+
+
+assign 			h0const = 32'h0x6a09e667;
+assign 			h1const = 32'h0xbb67ae85;
+assign 			h2const = 32'h0x3c6ef372;
+assign 			h3const = 32'h0xa54ff53a;
+assign 			h4const = 32'h0x510e527f;
+assign 			h5const = 32'h0x9b05688c;
+assign 			h6const = 32'h0x1f83d9ab;
+assign 			h7const = 32'h0x5be0cd19;
 
 logic   [31:0] s1_my, s0_my;
-logic   [31:0] w_my[64];
+logic   [31:0] w_my[num_nonces][16];
 logic [31:0] m1[16]; // message block 1 (only original data)
 logic [31:0] m2[16]; // message block 2 
 logic [15:0] offset; // iterate through message
 logic [31:0] message[20]; // read in the input data given message_addr and offset
 
-int m, n, t, i;
+int m, n, t, i, q;
 int b1_2 = 1;
 int nonce_counter = 0;
 int b2_flag = 0;
@@ -78,10 +100,27 @@ function logic [31:0] rightrotate(input logic [31:0] x,
    rightrotate = (x >> r) | (x << (32 - r));
 endfunction
 
-
+function logic [31:0] wtnew (input logic [15:0] myVar); // function with no inputs uhhhh
+logic [31:0] s0, s1;
+	s0 = rightrotate(w_my[myVar][1],7)^rightrotate(w_my[myVar][1],18)^(w_my[myVar][1]>>3);
+	s1 = rightrotate(w_my[myVar][14],17)^rightrotate(w_my[myVar][14],19)^(w_my[myVar][14]>>10);
+	wtnew = w_my[myVar][0] + s0 + w_my[myVar][9] + s1;
+endfunction
 // Student  to add rest of the code here
 
 
+//genvar q; 
+//generate
+	//for (q = 0; q < num_nonces; q++) begin : generate_256_blocks
+	//	$display("hihihi: %x", q);
+//   end 
+//endgenerate
+
+
+// okay, serial portion done... idle and read seem to be okay..? 
+
+// maybe redo read...  
+	// okay how about making this method more efficient with vectorization instead of just parallelization of modules  
 always_ff @(posedge clk, negedge reset_n)
 begin
   if (!reset_n) begin
@@ -90,29 +129,30 @@ begin
   end 
   else case (state)
 
-    IDLE: begin 
+  IDLE: begin 
        if(start) begin
-         cur_we <= 0; 
-			cur_addr <= message_addr; 
- 
-			offset <= 16'b0;
-			fh0_my <= 32'h0x6a09e667;
-			fh1_my <= 32'h0xbb67ae85;
-			fh2_my <= 32'h0x3c6ef372;
-			fh3_my <= 32'h0xa54ff53a;
-			fh4_my <= 32'h0x510e527f;
-			fh5_my <= 32'h0x9b05688c;
-			fh6_my <= 32'h0x1f83d9ab;
-			fh7_my <= 32'h0x5be0cd19;
-			a_my <= 32'h0x6a09e667;
-			b_my <= 32'h0xbb67ae85;
-			c_my <= 32'h0x3c6ef372;
-			d_my <= 32'h0xa54ff53a;
-			e_my <= 32'h0x510e527f;
-			f_my <= 32'h0x9b05688c;
-			g_my <= 32'h0x1f83d9ab;
-			h_my <= 32'h0x5be0cd19;
+
+            cur_we <= 0; 
+			   cur_addr <= message_addr; 
+	         h0_my[0] <= h0const;
+				h1_my[0] <= h1const;
+				h2_my[0] <= h2const;
+				h3_my[0] <= h3const;
+				h4_my[0] <= h4const;
+				h5_my[0] <= h5const;
+				h6_my[0] <= h6const;
+				h7_my[0] <= h7const;
 			
+				a_my[0] <= h0const;
+				b_my[0] <= h1const;
+				c_my[0] <= h2const;
+				d_my[0] <= h3const;
+				e_my[0] <= h4const;
+				f_my[0] <= h5const;
+				g_my[0] <= h6const;
+				h_my[0] <= h7const;
+			
+			offset <= 0;
 			state <= READ;
 		 end
 		 else begin 
@@ -120,302 +160,80 @@ begin
 		 end 
        
     end
-	 READ: begin 
-		if (offset < 21) begin // message
+  READ: begin 
+	 
+	   // Ask about the compute time for this algorithm // creates m1 and m2, m1 just for phase 1 stuff 
+		if (offset < 21) begin 
 			message[offset-1] <= mem_read_data;
 			offset <= offset + 1;
+			if (offset > 5) begin 
+				w_my[0][offset-6] <= message[offset-6];
+			end 
 		end
 		else begin 
-			for (int q = 0; q < 16; q++) begin 
-				 m1[q] <= message[q];
-				 if (q < 3) begin
-					m2[q] <= message[q+16];
-				 end	
-			end
-			m2[3] <= 32'h00000000; // replaced by NONCE value
-			m2[4] <= 32'h80000000; // 1 padding
-			for (int qq = 5;  qq < 15; qq++) begin
-				  m2[qq] = 32'h0; // 0 padding 
-			end
-			m2[15] <= 32'd640;   // Least significant 32 bits okay check if its 640 -> 00000 ... 11 0000
-			state <= BLOCK;
-		end 
-		
-	 end 
-	 BLOCK: begin 
-		// -----------------------
-		// Block 1 computation 
-		// -----------------------
-		if (b1_2 == 1) begin
-			// WORD EXPANSION
-			if (t < 64) begin
+			state <= PHASE_1;
+			offset <= 0;
+	 
+	   end 
+  end
+  PHASE_1: begin 
+
+			// WORD EXPANSION errrrr
+			if (t <= 64) begin
 					  if (t < 16) begin
-							w_my[t] <=  m1[t]; // Assign directly from m1 or m2
+							{a_my[0], b_my[0], c_my[0], d_my[0], e_my[0], f_my[0], g_my[0], h_my[0]} = sha256_op(a_my[0], b_my[0], c_my[0], d_my[0], e_my[0], f_my[0], g_my[0], h_my[0], w_my[0][t], t);
 					  end else begin
-							s0_my = rightrotate(w_my[t-15], 7) ^ rightrotate(w_my[t-15], 18) ^ (w_my[t-15] >> 3);
-							s1_my = rightrotate(w_my[t-2], 17) ^ rightrotate(w_my[t-2], 19) ^ (w_my[t-2] >> 10);
-							w_my[t] = w_my[t-16] + s0_my + w_my[t-7] + s1_my;
+							for(int n = 0; n < 15; n++) begin
+									w_my[0][n] <= w_my[0][n+1];
+							end							
+							w_my[0][15] <= wtnew(0);
+					  
 					  end
 	
 					  t <= t + 1; // Increment t for the next clock cycle
+					  state <= PHASE_1;
 			end	 	
 			else begin 
-				state <= COMPUTE;
-			end
-		end
-		// -----------------------
-		// End block 1 computation 
-		// -----------------------
-		
-		// -----------------------
-		// Block 2 computation -- First hash for each Nonce
-		// ---------------------
-		else begin 
-			// Flags to switch between word expansion, hash rounds, & hash reset
-		   // or have nonce_rounds counter, hash reset flag. once nonce_rounds > num_nonces, reset_hash & nonce_rounds
-				if (nonce_counter > num_nonces) begin
-					$display("Phase 2 end ");
-					$display("---------------------------");	 
-					for (int n = 0; n < num_nonces; n++) begin
-						$display("h0_my[%x]: %x", n, h0_my[n]);
 
-					end
-					b2_flag <= 1;
-					nonce_counter <= 0;
-				   t <= 0;
-					
-					state <= BLOCK_3;
-				end
-			   else begin 
-					m2[3] = nonce_counter;
-					if (t < 64) begin
-					  if (t < 16) begin
-							w_my[t] <=  m2[t]; // Assign directly from m1 or m2
-					  end else begin
-							s0_my = rightrotate(w_my[t-15], 7) ^ rightrotate(w_my[t-15], 18) ^ (w_my[t-15] >> 3);
-							s1_my = rightrotate(w_my[t-2], 17) ^ rightrotate(w_my[t-2], 19) ^ (w_my[t-2] >> 10);
-							w_my[t] = w_my[t-16] + s0_my + w_my[t-7] + s1_my;
-					  end
+					  h0_phase1 <= h0_my[0] + a_my[0];
+					  h1_phase1 <= h1_my[0] + b_my[0];
+					  h2_phase1 <= h2_my[0] + c_my[0];
+					  h3_phase1 <= h3_my[0] + d_my[0];
+					  h4_phase1 <= h4_my[0] + e_my[0];
+					  h5_phase1 <= h5_my[0] + f_my[0];
+					  h6_phase1 <= h6_my[0] + g_my[0];
+					  h7_phase1 <= h7_my[0] + h_my[0];
+					  i <= 0;
+					  t <= 0;
+					  state <= WRITE;
+					  
+			   
+		  end
 			
-					  t <= t + 1; // Increment t for the next clock cycle
-					end	 	
-					
-					else begin 
-						  h0_my[nonce_counter] <= fh0_my;
-						  h1_my[nonce_counter] <= fh1_my;
-						  h2_my[nonce_counter] <= fh2_my;
-						  h3_my[nonce_counter] <= fh3_my;
-						  h4_my[nonce_counter] <= fh4_my;
-						  h5_my[nonce_counter] <= fh5_my;
-						  h6_my[nonce_counter] <= fh6_my;
-						  h7_my[nonce_counter] <= fh7_my;
-				
-						  a_my <= fh0_my;
-						  b_my <= fh1_my;
-						  c_my <= fh2_my;
-						  d_my <= fh3_my;
-						  e_my <= fh4_my;
-						  f_my <= fh5_my;
-						  g_my <= fh6_my;
-						  h_my <= fh7_my;				
-							
-					
-						  t <= 0;
-						  state <= COMPUTE;
-					end
-				end
-			end
-		
-		
-		// -----------------------
-		// End block 2 computation 
-		// -----------------------
 	end	
 	
 	
-	BLOCK_3: begin 
-		 if (nonce_counter >= num_nonces) begin
-			  $display("Phase 3 end ");
-			  $display("---------------------------");	 
-			  for (int n = 0; n < num_nonces; n++) begin
-					$display("h0_my[%x]: %x", n, h0_my[n]);
-			  end
-			  state <= WRITE;
-		 end
-		 
-		 // Initialize w_my from h_my, but do it only once for each nonce
-		 if (t == 0) begin
-			  w_my[0] <= h0_my[nonce_counter];
-			  w_my[1] <= h1_my[nonce_counter];
-			  w_my[2] <= h2_my[nonce_counter];
-			  w_my[3] <= h3_my[nonce_counter];
-			  w_my[4] <= h4_my[nonce_counter];
-			  w_my[5] <= h5_my[nonce_counter];
-			  w_my[6] <= h6_my[nonce_counter];
-			  w_my[7] <= h7_my[nonce_counter];
-			  w_my[8] <= 32'h80000000; // padding
-			  w_my[9] <= 32'h00000000;
-			  w_my[10] <= 32'h00000000;
-			  w_my[11] <= 32'h00000000;
-			  w_my[12] <= 32'h00000000;
-			  w_my[13] <= 32'h00000000;
-			  w_my[14] <= 32'h00000000;
-			  w_my[15] <= 32'd256; 
-			  
-			  t <= t + 1; // Increment t to move to the next stage
-		 end
-		 else if (t == 1) begin
-			  // Only update h_my after w_my has been initialized
-			  h0_my[nonce_counter] <= 32'h6a09e667;
-			  h1_my[nonce_counter] <= 32'hbb67ae85;
-			  h2_my[nonce_counter] <= 32'h3c6ef372;
-			  h3_my[nonce_counter] <= 32'ha54ff53a;
-			  h4_my[nonce_counter] <= 32'h510e527f;
-			  h5_my[nonce_counter] <= 32'h9b05688c;
-			  h6_my[nonce_counter] <= 32'h1f83d9ab;
-			  h7_my[nonce_counter] <= 32'h5be0cd19;
-	
-			  a_my <= 32'h6a09e667;
-			  b_my <= 32'hbb67ae85;
-			  c_my <= 32'h3c6ef372;
-			  d_my <= 32'ha54ff53a;
-			  e_my <= 32'h510e527f;
-			  f_my <= 32'h9b05688c;
-			  g_my <= 32'h1f83d9ab;
-			  h_my <= 32'h5be0cd19;
-	
-			  t <= 16; // Increment t to move to the computation stage
-		 end
-		 else if (t >= 15 && t < 64) begin
-			  // Compute the extended w_my values
-			  s0_my = rightrotate(w_my[t-15], 7) ^ rightrotate(w_my[t-15], 18) ^ (w_my[t-15] >> 3);
-			  s1_my = rightrotate(w_my[t-2], 17) ^ rightrotate(w_my[t-2], 19) ^ (w_my[t-2] >> 10);
-			  w_my[t] = w_my[t-16] + s0_my + w_my[t-7] + s1_my;
-	
-			  t <= t + 1; // Increment t for the next clock cycle
-		 end
-		 else if (t >= 64) begin 
-			  b1_2 <= 2;
-			  state <= COMPUTE;
-			  t <= 0; // Reset t for the next nonce or phase
-		 end
-	end
-
 	COMPUTE: begin 
-		// -----------------------
-		// Block 1 computation 
-		// -----------------------
-		if (b1_2 == 1) begin
-			  if (i < 64) begin
-					  {a_my, b_my, c_my, d_my, e_my, f_my, g_my, h_my} = sha256_op(a_my, b_my, c_my, d_my, e_my, f_my, g_my, h_my, w_my[i], i);
-					  i <= i + 1;
-			  end 
-			  else begin 
-					  fh0_my <= fh0_my + a_my;
-					  fh1_my <= fh1_my + b_my;
-					  fh2_my <= fh2_my + c_my;
-					  fh3_my <= fh3_my + d_my;
-					  fh4_my <= fh4_my + e_my;
-					  fh5_my <= fh5_my + f_my;
-					  fh6_my <= fh6_my + g_my;
-					  fh7_my <= fh7_my + h_my;
-					  i <= 0;
-					  b1_2 <= 2;
-					  t <= 0;
-					  state <= BLOCK;
-					  
-			  end 
-		end
-		// -----------------------
-		// End block 1 computation 
-		// -----------------------
-		
-		
-	   // -----------------------
-		// Block 2 computation 
-		// ---------------------
-		
-		else begin 
-			  if (i < 64) begin
-					  {a_my, b_my, c_my, d_my, e_my, f_my, g_my, h_my} = sha256_op(a_my, b_my, c_my, d_my, e_my, f_my, g_my, h_my, w_my[i], i);
-					  i <= i + 1;
-			  end 
-			  else begin 
-					  h0_my[nonce_counter] <= h0_my[nonce_counter] + a_my;
-					  h1_my[nonce_counter] <= h1_my[nonce_counter] + b_my;
-					  h2_my[nonce_counter] <= h2_my[nonce_counter] + c_my;
-					  h3_my[nonce_counter] <= h3_my[nonce_counter] + d_my;
-					  h4_my[nonce_counter] <= h4_my[nonce_counter] + e_my;
-					  h5_my[nonce_counter] <= h5_my[nonce_counter] + f_my;
-					  h6_my[nonce_counter] <= h6_my[nonce_counter] + g_my;
-					  h7_my[nonce_counter] <= h7_my[nonce_counter] + h_my;
-					  i <= 0;
-					  b1_2 <= 2;
-					  t <= 0;
-					  nonce_counter <= nonce_counter + 1;
-					 // Flags to see in phase 2 or phase 3 (slide 15)		
 
-					 if (b2_flag == 0) begin
-						state <= BLOCK;
-					 end
-					 else begin 
-					 	
-						  t <= 0;	 
-						  state <= BLOCK_3;
-					 end
-					  
-			  end 			
-		end
-		// -----------------------
-		// End block 2 computation 
-		// -----------------------
+
 	end 
 	WRITE: begin 
-		 cur_we <= 1;
-		 cur_addr <= output_addr -1;
-        if(offset < 8) begin
-            case (offset)
-                0: begin
-					 
-					 mem_write_data <= h0_my[0];
-					 end
-                1: begin
-					 
-					 mem_write_data <= h0_my[1];
-                end
-					 2: begin
-					 mem_write_data <= h0_my[2];
-                end
-					 3: begin
-					 
-					 mem_write_data <= h0_my[3];
-                end
-					 4: begin
-					 
-					 mem_write_data <= h0_my[4];
-                end
-					 5: begin
-					 
-					 mem_write_data <= h0_my[5];
-                end
-					 6: begin
-					 
-					 mem_write_data <= h0_my[6];
-                end
-					 7: begin
-					 
-					 mem_write_data <= h0_my[7];
-					 end
-            endcase
-			
-		  state <= WRITE;
-        offset <= offset + 1;
-		  end 
-        else begin
-				state <= IDLE; // done is generated when state is idle
-				done <= 1;
-        end
+	 
+		 $display("My hash results");
+		 $display("Phase 1 Data");
+		 $display("---------------------------");	 
+		 $display("h0_phase1: %x", n, h0_phase1);
+		 $display("---------------------------");	 
+		 
+		 done <= 1;
+		 
 	end 
+	
+	
+	
+	
+	
+	
 	
 	endcase
 	end
