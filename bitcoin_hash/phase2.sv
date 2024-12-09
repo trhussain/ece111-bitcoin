@@ -13,7 +13,7 @@ module phase2(
     output logic         done
 );
     logic [31:0] w_temp, h_temp;
-int t = 0;
+int t = -1;
 int local_onoff = 1;
 parameter int k[64] = '{
     32'h428a2f98,32'h71374491,32'hb5c0fbcf,32'he9b5dba5,32'h3956c25b,32'h59f111f1,32'h923f82a4,32'hab1c5ed5,
@@ -41,6 +41,7 @@ function logic [255:0] sha256_op(input logic [31:0] a, b, c, d, e, f, g, h, w, i
 endfunction
 
 
+logic   [31:0] w_internal[16];
 
 
 function logic [31:0] rightrotate(input logic [31:0] x, input logic [ 7:0] r);								
@@ -49,14 +50,13 @@ endfunction
 
 function logic [31:0] wtnew (input logic [15:0] myVar); // function with no inputs uhhhh
 	logic [31:0] s0, s1;
-	s0 = rightrotate(w_in[myVar][1],7)^rightrotate(w_in[myVar][1],18)^(w_in[myVar][1]>>3);
-	s1 = rightrotate(w_in[myVar][14],17)^rightrotate(w_in[myVar][14],19)^(w_in[myVar][14]>>10);
-	wtnew = w_in[myVar][0] + s0 + w_in[myVar][9] + s1;
+	s0 = rightrotate(w_internal[1],7)^rightrotate(w_internal[1],18)^(w_internal[1]>>3);
+	s1 = rightrotate(w_internal[14],17)^rightrotate(w_internal[14],19)^(w_internal[14]>>10);
+	wtnew = w_internal[0] + s0 + w_internal[9] + s1;
 endfunction
 
 
 
-logic   [31:0] w_internal[16];
 
 
 logic   [31:0] h0_my_loc;
@@ -80,14 +80,14 @@ logic [31:0] h_my_loc;
 
 always_ff @(posedge clk or negedge reset_n) begin
     if (!reset_n) begin
-		  t <= 0;
+		  t <= -1;
 		  
      end else if (on_off && local_onoff) begin
-			if (t == 0) begin
-			   w_internal[0] = w_in[nonce_value][0];
-			   w_internal[1] = w_in[nonce_value][1];
+			if (t == -1) begin
+			   w_internal[0] = w_in[nonce_value][0]; // assigning w internal, w_in already blockified 
+			   w_internal[1] = w_in[nonce_value][1]; 
 				w_internal[2] = w_in[nonce_value][2];
-				w_internal[3] = w_in[nonce_value][3];
+				w_internal[3] = nonce_value;
 				w_internal[4] = w_in[nonce_value][4];
 				w_internal[5] = w_in[nonce_value][5];
 				w_internal[6] = w_in[nonce_value][6];
@@ -119,26 +119,32 @@ always_ff @(posedge clk or negedge reset_n) begin
 				h6_my_loc <= hphase1[6];
 				h7_my_loc <= hphase1[7];	
 				t <= t + 1;
-								$display("---------------------qq234123452345234--------------");
 
 			end
-			else if (t < 64) begin
+			else if (t <= 64) begin
 					  if (t < 16) begin
+
+
 							{a_my_loc, b_my_loc, c_my_loc, d_my_loc, e_my_loc, f_my_loc, g_my_loc, h_my_loc} = sha256_op(a_my_loc, b_my_loc, c_my_loc, d_my_loc, e_my_loc, f_my_loc, g_my_loc, h_my_loc, w_internal[t], t);
+
 					  end 
 					  else begin
-						  for(int x = 0; x < 15; x++) begin
+						  for(int x = 0; x < 16; x++) begin
 										w_internal[x] <= w_internal[x+1];
 						  end							
-								w_internal[15] <= wtnew(nonce_value);
+						  w_internal[15] <= wtnew(0);
 						  if (t > 16) begin
 								{a_my_loc, b_my_loc, c_my_loc, d_my_loc, e_my_loc, f_my_loc, g_my_loc, h_my_loc} = sha256_op(a_my_loc, b_my_loc, c_my_loc, d_my_loc, e_my_loc, f_my_loc, g_my_loc, h_my_loc, w_internal[15], t-1);
 						  end 
 					  end
-				$display("--------asdasdasd---------------------------");
+						if (nonce_value == 15) begin
+						$display("t: %x", t);
+			
+						$display("a_my_loc: %x",a_my_loc);
+						$display("w internal: %x", w_internal[15]);
+						end
 
-	
-					  t <= t + 1; // Increment t for the next clock cycle
+			       t <= t + 1; // Increment t for the next clock cycle
 		   end
 		   else begin 
 
@@ -150,16 +156,16 @@ always_ff @(posedge clk or negedge reset_n) begin
 				h5_my_loc <= h5_my_loc + f_my_loc;
 				h6_my_loc <= h6_my_loc + g_my_loc;
 				h7_my_loc <= h7_my_loc + h_my_loc;
-				$display("--------------------inside version---------------");
-				$display("over here internal 0 nonce(%x): %x", nonce_value, h0_my_loc);
 				$display("-----------------------------------");
+				$display("nonce(%x): a(last) %x", nonce_value, a_my_loc);
+				$display("w internal: %x", w_internal[15]);
+
 				local_onoff <= 0;
 				//on_off <= 0;
 		   end
 	  
     end else begin // when its off 
 			
-        $display("oasdff");
     end
 end
 

@@ -249,7 +249,11 @@ begin
 					  t <= 0;
 					  state <= PHASE_2_BLOCK;
 					  // about 94 cycles up till this point... phase 2 & 3 are minimum 128 cycles, tf...? okay not to mention frequency...
-			   
+			   		for (int xx = 0; xx < 15; xx++) begin
+							for(int x = 0; x < 15; x++) begin
+									$display("PH1 wmy[%x][%x]: %x", xx,x,w_my[xx][x]);
+							 end
+						end
 		  end
 			
 	end	
@@ -273,7 +277,9 @@ begin
 				if (y < 3) begin 
 					w_my[xx][y] <= message[y+16]; // to be replaced by nonce value (? check this)
 				end
-			
+				else if (y==3) begin
+					w_my[xx][3] <= 32'h00000000; // REPLACED BY NONCE VALUE 
+				end
 				else if (y == 4) begin 
 					w_my[xx][4] <= 32'h80000000; // 1 padding
 				end
@@ -287,26 +293,25 @@ begin
 				end									
 			end
 		end
-		if (endphase2 == 1) begin // not implemented yet!
+		if (endphase2 == 1) begin
 			$display("values here should be good phase 2 end");
 			state <= WRITE;
 		end
 	end 
 	WRITE: begin 
 	 
-		 $display("My hash results");
-		 $display("Phase 1 Data");
-		 $display("---------------------------");	 
-		 $display("h0_phase1: %x", n, h_phase1[0]);
-		 $display("---------------------------");	 
-			for (int xx = 0; xx < 15; xx++) begin
-				for(int x = 0; x < 15; x++) begin
-						$display("wmy[%x][%x]: %x", xx,x,w_my[xx][x]);
-				 end
-			end
-			 for(int x = 0; x < 15; x++) begin
-					$display("h_phase1[%x]: %x", x,h_phase1[x]);
-			 end
+//		 $display("My hash results");
+//		 $display("Phase 1 Data");
+//		 $display("---------------------------");	 	 
+//			for (int xx = 0; xx < 15; xx++) begin
+//				for(int x = 0; x < 15; x++) begin
+//						$display("wmy[%x][%x]: %x", xx,x,w_my[xx][x]);
+//				 end
+//			end
+//			 for(int x = 0; x < 15; x++) begin
+//					$display("h_phase1[%x]: %x", x,h_phase1[x]);
+//			 end
+		 
 	end 
 	
 	
