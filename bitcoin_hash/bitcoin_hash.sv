@@ -1,3 +1,5 @@
+`include "types_pkg.sv"
+
 module bitcoin_hash (input logic        clk, reset_n, start,
                      input logic [15:0] message_addr, output_addr,
                     output logic        done, mem_clk, mem_we,
@@ -6,7 +8,6 @@ module bitcoin_hash (input logic        clk, reset_n, start,
                      input logic [31:0] mem_read_data);
 
 //parameter num_nonces = 16;
-`include "types_pkg.sv"
 enum logic [2:0] {IDLE, READ, PHASE_1, PHASE_2_BLOCK, PHASE_3, COMPUTE, WRITE} state;
 logic [31:0] hout[num_nonces];
 
@@ -18,45 +19,15 @@ logic   [31:0] h4_my[num_nonces];
 logic   [31:0] h5_my[num_nonces];
 logic   [31:0] h6_my[num_nonces];
 logic   [31:0] h7_my[num_nonces];
+
+
 hash_arrays_t h_all;
 
-//typedef struct {
-//    logic [31:0] h0_my[num_nonces];
-//    logic [31:0] h1_my[num_nonces];
-//    logic [31:0] h2_my[num_nonces];
-//    logic [31:0] h3_my[num_nonces];
-//    logic [31:0] h4_my[num_nonces];
-//    logic [31:0] h5_my[num_nonces];
-//    logic [31:0] h6_my[num_nonces];
-//    logic [31:0] h7_my[num_nonces];
-//} hash_arrays_t;
-//
-//hash_arrays_t h_all;
-//
-//typedef struct {
-//    logic [31:0] a_my[num_nonces];
-//    logic [31:0] b_my[num_nonces];
-//    logic [31:0] c_my[num_nonces];
-//    logic [31:0] d_my[num_nonces];
-//    logic [31:0] e_my[num_nonces];
-//    logic [31:0] f_my[num_nonces];
-//    logic [31:0] g_my[num_nonces];
-//    logic [31:0] h_my[num_nonces];
-//} letter_arr;
-//
+
 letter_arr l_all;
 
 
-logic   [31:0] a_my[num_nonces];
-logic   [31:0] b_my[num_nonces];
-logic   [31:0] c_my[num_nonces];
-logic   [31:0] d_my[num_nonces];
-logic   [31:0] e_my[num_nonces];
-logic   [31:0] f_my[num_nonces];
-logic   [31:0] g_my[num_nonces];
-logic   [31:0] h_my[num_nonces];
-
-logic   [31:0] fh0_my, fh1_my, fh2_my, fh3_my, fh4_my, fh5_my, fh6_my, fh7_my;
+logic [num_nonces-1:0] done_flags;
 
 logic   [31:0] h_phase1[8];
 logic   [31:0] h0const;
@@ -142,31 +113,32 @@ logic [31:0] s0, s1;
 endfunction
 // Student  to add rest of the code here
 
-//
-//genvar q;
-//generate
-//    for (q = 0; q < num_nonces; q++) begin : generate_256_blocks
-//        // Instantiate the phase2 module for each nonce
-//			phase2 phase2_inst (
-//				 .clk(clk),
-//				 .reset_n(reset_n),
-//				 .start(start),
-//				 .nonce_value(q),
-//				 .on_off(phase2_onoff),
-//				 .w_in(w_my),
-//				 .h_all_in(h_all),     // Connect input hash arrays struct
-//				 .letter_in(l_in),   // Connect input letter arrays struct
-//				 .h_all_out(),   // Connect output hash arrays struct
-//				 .letter_out(), // Connect output letter arrays struct
-//				 .done(done)
-//			);
-//
-//        initial begin
-//            $display("Instantiated phase2 for nonce: %x", q);
-//        end
-//		  
-//    end
-//endgenerate
+
+genvar q;
+generate
+    for (q = 0; q < num_nonces; q++) begin : generate_256_blocks
+        // Instantiate the phase2 module for each nonce
+			phase2 phase2_inst (
+				 .clk(clk),
+				 .reset_n(reset_n),
+				 .start(start),
+				 .nonce_value(q),
+				 .on_off(phase2_onoff),
+				 .w_in(w_my),
+				 .h_all_in(h_all),     // Connect input hash arrays struct
+				 .hphase1(h_phase1),
+				 .letter_in(l_all),   // Connect input letter arrays struct
+				 .h_all_out(),   // Connect output hash arrays struct
+				 .letter_out(), // Connect output letter arrays struct
+				 .done()
+			);
+
+        initial begin
+            $display("Instantiated phase2 for nonce: %x", q);
+        end
+		  
+    end
+endgenerate
 
 
 // okay, serial portion done... idle and read seem to be okay..? 
@@ -271,7 +243,7 @@ begin
 					  i <= 0;
 					  t <= 0;
 					  state <= PHASE_2_BLOCK;
-					  
+					  // about 94 cycles up till this point... phase 2 & 3 are minimum 128 cycles, tf...? okay not to mention frequency...
 			   
 		  end
 			
