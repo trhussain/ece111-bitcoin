@@ -1,0 +1,21 @@
+module phase2(
+    input  logic        clk,
+    input  logic        reset_n,
+    input  logic        start,
+    input  logic [31:0] w_in,         // w value
+    input  logic [31:0] h_in,         // h_phase1 value
+    output logic [31:0] w_out,        // incremented w
+    output logic [31:0] h_out,        // incremented h_phase1
+    output logic        done          
+);
+
+    logic [31:0] w_temp, h_temp;
+
+    always_ff @(posedge clk or negedge reset_n) begin
+            w_out <= w_in + 32'd1;  
+            h_out <= h_in + 32'd1;               
+				$display("test print");
+    end
+
+
+endmodule
