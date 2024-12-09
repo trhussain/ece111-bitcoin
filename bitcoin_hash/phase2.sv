@@ -1,5 +1,3 @@
-`include "types_pkg.sv"
-
 
 
 module phase2(
@@ -9,17 +7,14 @@ module phase2(
 	 input  logic [31:0]       nonce_value,
 	 input  logic [31:0]       on_off,
     input  logic [31:0] w_in[16][16],    // Input array (row of w_in)
-    input  hash_arrays_t h_all_in,       // Input struct for hash arrays
 	 input  logic   [31:0] hphase1[8],
+    
 
-    input  letter_arr    letter_in,      // Input struct for letter arrays
-    output hash_arrays_t h_all_out,      // Output struct for updated hash arrays
-    output letter_arr    letter_out,     // Output struct for updated letter arrays
     output logic         done
 );
     logic [31:0] w_temp, h_temp;
 int t = 0;
-
+int local_onoff = 1;
 parameter int k[64] = '{
     32'h428a2f98,32'h71374491,32'hb5c0fbcf,32'he9b5dba5,32'h3956c25b,32'h59f111f1,32'h923f82a4,32'hab1c5ed5,
     32'hd807aa98,32'h12835b01,32'h243185be,32'h550c7dc3,32'h72be5d74,32'h80deb1fe,32'h9bdc06a7,32'hc19bf174,
@@ -63,15 +58,31 @@ endfunction
 
 logic   [31:0] w_internal[16];
 
-hash_arrays_t h_internal;  // Example of struct usage
-letter_arr letter_internal;
+
+logic   [31:0] h0_my_loc;
+logic   [31:0] h1_my_loc;
+logic   [31:0] h2_my_loc;
+logic   [31:0] h3_my_loc;
+logic   [31:0] h4_my_loc;
+logic   [31:0] h5_my_loc;
+logic   [31:0] h6_my_loc;
+logic   [31:0] h7_my_loc;
+
+logic [31:0] a_my_loc;
+logic [31:0] b_my_loc;
+logic [31:0] c_my_loc;
+logic [31:0] d_my_loc;
+logic [31:0] e_my_loc;
+logic [31:0] f_my_loc;
+logic [31:0] g_my_loc;
+logic [31:0] h_my_loc;
 
 
 always_ff @(posedge clk or negedge reset_n) begin
     if (!reset_n) begin
 		  t <= 0;
 		  
-     end else if (on_off) begin
+     end else if (on_off && local_onoff) begin
 			if (t == 0) begin
 			   w_internal[0] = w_in[nonce_value][0];
 			   w_internal[1] = w_in[nonce_value][1];
@@ -90,27 +101,30 @@ always_ff @(posedge clk or negedge reset_n) begin
 				w_internal[14] = w_in[nonce_value][14];
 				w_internal[15] = w_in[nonce_value][15];
 				
-			   letter_internal.a_my[nonce_value] <= hphase1[0];
-            letter_internal.b_my[nonce_value] <= hphase1[1];
-            letter_internal.c_my[nonce_value] <= hphase1[2];
-            letter_internal.d_my[nonce_value] <= hphase1[3];
-            letter_internal.e_my[nonce_value] <= hphase1[4];
-            letter_internal.f_my[nonce_value] <= hphase1[5];
-            letter_internal.g_my[nonce_value] <= hphase1[6];
-            letter_internal.h_my[nonce_value] <= hphase1[7];
-			   h_internal.h0_my[nonce_value] <= hphase1[0];
-				h_internal.h1_my[nonce_value] <= hphase1[1];
-				h_internal.h2_my[nonce_value] <= hphase1[2];
-				h_internal.h3_my[nonce_value] <= hphase1[3];
-				h_internal.h4_my[nonce_value] <= hphase1[4];
-				h_internal.h5_my[nonce_value] <= hphase1[5];
-				h_internal.h6_my[nonce_value] <= hphase1[6];
-				h_internal.h7_my[nonce_value] <= hphase1[7];	
+			   a_my_loc <= hphase1[0];
+            b_my_loc <= hphase1[1];
+            c_my_loc <= hphase1[2];
+            d_my_loc <= hphase1[3];
+            e_my_loc <= hphase1[4];
+            f_my_loc <= hphase1[5];
+            g_my_loc <= hphase1[6];
+            h_my_loc <= hphase1[7];
+				
+			   h0_my_loc <= hphase1[0];
+				h1_my_loc <= hphase1[1];
+				h2_my_loc <= hphase1[2];
+				h3_my_loc <= hphase1[3];
+				h4_my_loc <= hphase1[4];
+				h5_my_loc <= hphase1[5];
+				h6_my_loc <= hphase1[6];
+				h7_my_loc <= hphase1[7];	
 				t <= t + 1;
+								$display("---------------------qq234123452345234--------------");
+
 			end
-			else if (t <= 64) begin
+			else if (t < 64) begin
 					  if (t < 16) begin
-							{letter_internal.a_my[nonce_value], letter_internal.b_my[nonce_value], letter_internal.c_my[nonce_value], letter_internal.d_my[nonce_value], letter_internal.e_my[nonce_value], letter_internal.f_my[nonce_value], letter_internal.g_my[nonce_value], letter_internal.h_my[nonce_value]} = sha256_op(letter_internal.a_my[nonce_value], letter_internal.b_my[nonce_value], letter_internal.c_my[nonce_value], letter_internal.d_my[nonce_value], letter_internal.e_my[nonce_value], letter_internal.f_my[nonce_value], letter_internal.g_my[nonce_value], letter_internal.h_my[nonce_value], w_internal[t], t);
+							{a_my_loc, b_my_loc, c_my_loc, d_my_loc, e_my_loc, f_my_loc, g_my_loc, h_my_loc} = sha256_op(a_my_loc, b_my_loc, c_my_loc, d_my_loc, e_my_loc, f_my_loc, g_my_loc, h_my_loc, w_internal[t], t);
 					  end 
 					  else begin
 						  for(int x = 0; x < 15; x++) begin
@@ -118,32 +132,34 @@ always_ff @(posedge clk or negedge reset_n) begin
 						  end							
 								w_internal[15] <= wtnew(nonce_value);
 						  if (t > 16) begin
-								{letter_internal.a_my[nonce_value], letter_internal.b_my[nonce_value], letter_internal.c_my[nonce_value], letter_internal.d_my[nonce_value], letter_internal.e_my[nonce_value], letter_internal.f_my[nonce_value], letter_internal.g_my[nonce_value], letter_internal.h_my[nonce_value]} = sha256_op(letter_internal.a_my[nonce_value], letter_internal.b_my[nonce_value], letter_internal.c_my[nonce_value], letter_internal.d_my[nonce_value], letter_internal.e_my[nonce_value], letter_internal.f_my[nonce_value], letter_internal.g_my[nonce_value], letter_internal.h_my[nonce_value], w_internal[15], t-1);
+								{a_my_loc, b_my_loc, c_my_loc, d_my_loc, e_my_loc, f_my_loc, g_my_loc, h_my_loc} = sha256_op(a_my_loc, b_my_loc, c_my_loc, d_my_loc, e_my_loc, f_my_loc, g_my_loc, h_my_loc, w_internal[15], t-1);
 						  end 
 					  end
+				$display("--------asdasdasd---------------------------");
+
 	
 					  t <= t + 1; // Increment t for the next clock cycle
 		   end
 		   else begin 
 
-			   h_internal.h0_my[nonce_value] <= h_internal.h0_my[nonce_value] + letter_internal.a_my[nonce_value];
-				h_internal.h1_my[nonce_value] <= h_internal.h1_my[nonce_value] + letter_internal.b_my[nonce_value];
-				h_internal.h2_my[nonce_value] <= h_internal.h2_my[nonce_value] + letter_internal.c_my[nonce_value];
-				h_internal.h3_my[nonce_value] <= h_internal.h3_my[nonce_value] + letter_internal.d_my[nonce_value];
-				h_internal.h4_my[nonce_value] <= h_internal.h4_my[nonce_value] + letter_internal.e_my[nonce_value];
-				h_internal.h5_my[nonce_value] <= h_internal.h5_my[nonce_value] + letter_internal.f_my[nonce_value];
-				h_internal.h6_my[nonce_value] <= h_internal.h6_my[nonce_value] + letter_internal.g_my[nonce_value];
-				h_internal.h7_my[nonce_value] <= h_internal.h7_my[nonce_value] + letter_internal.h_my[nonce_value];
-				$display("over here internal 0 nonce(%x): %x", nonce_value, h_internal.h0_my[nonce_value]);
-
+			   h0_my_loc <= h0_my_loc + a_my_loc;
+				h1_my_loc <= h1_my_loc + b_my_loc;
+				h2_my_loc <= h2_my_loc + c_my_loc;
+				h3_my_loc <= h3_my_loc + d_my_loc;
+				h4_my_loc <= h4_my_loc + e_my_loc;
+				h5_my_loc <= h5_my_loc + f_my_loc;
+				h6_my_loc <= h6_my_loc + g_my_loc;
+				h7_my_loc <= h7_my_loc + h_my_loc;
+				$display("--------------------inside version---------------");
+				$display("over here internal 0 nonce(%x): %x", nonce_value, h0_my_loc);
+				$display("-----------------------------------");
+				local_onoff <= 0;
 				//on_off <= 0;
 		   end
-        $display("on");
-		  
+	  
     end else begin // when its off 
 			
-        $display("off");
-		  $display("h internal 0 nonce(%x): %x", nonce_value, h_internal.h0_my[nonce_value]);
+        $display("oasdff");
     end
 end
 

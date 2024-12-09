@@ -1,4 +1,3 @@
-`include "types_pkg.sv"
 
 module bitcoin_hash (input logic        clk, reset_n, start,
                      input logic [15:0] message_addr, output_addr,
@@ -7,7 +6,7 @@ module bitcoin_hash (input logic        clk, reset_n, start,
                     output logic [31:0] mem_write_data,
                      input logic [31:0] mem_read_data);
 
-//parameter num_nonces = 16;
+parameter num_nonces = 16;
 enum logic [2:0] {IDLE, READ, PHASE_1, PHASE_2_BLOCK, PHASE_3, COMPUTE, WRITE} state;
 logic [31:0] hout[num_nonces];
 
@@ -20,16 +19,21 @@ logic   [31:0] h5_my[num_nonces];
 logic   [31:0] h6_my[num_nonces];
 logic   [31:0] h7_my[num_nonces];
 
+logic [31:0] a_my[num_nonces];
+logic [31:0] b_my[num_nonces];
+logic [31:0] c_my[num_nonces];
+logic [31:0] d_my[num_nonces];
+logic [31:0] e_my[num_nonces];
+logic [31:0] f_my[num_nonces];
+logic [31:0] g_my[num_nonces];
+logic [31:0] h_my[num_nonces];
 
-hash_arrays_t h_all;
-
-
-letter_arr l_all;
 
 
 logic [num_nonces-1:0] done_flags;
 
 logic   [31:0] h_phase1[8];
+
 logic   [31:0] h0const;
 logic   [31:0] h1const;
 logic   [31:0] h2const;
@@ -125,11 +129,12 @@ generate
 				 .nonce_value(q),
 				 .on_off(phase2_onoff),
 				 .w_in(w_my),
-				 .h_all_in(h_all),     // Connect input hash arrays struct
 				 .hphase1(h_phase1),
-				 .letter_in(l_all),   // Connect input letter arrays struct
-				 .h_all_out(),   // Connect output hash arrays struct
-				 .letter_out(), // Connect output letter arrays struct
+
+
+				 
+
+
 				 .done()
 			);
 
@@ -159,23 +164,23 @@ begin
             cur_we <= 0; 
 			   cur_addr <= message_addr; 
 				for(int m=0; m<num_nonces; m++) begin
-					h_all.h0_my[m] <= h0const;
-					h_all.h1_my[m] <= h1const;
-					h_all.h2_my[m] <= h2const;
-					h_all.h3_my[m] <= h3const;
-					h_all.h4_my[m] <= h4const;
-					h_all.h5_my[m] <= h5const;
-					h_all.h6_my[m] <= h6const;
-					h_all.h7_my[m] <= h7const;
+					h0_my[m] <= h0const;
+					h1_my[m] <= h1const;
+					h2_my[m] <= h2const;
+					h3_my[m] <= h3const;
+					h4_my[m] <= h4const;
+					h5_my[m] <= h5const;
+					h6_my[m] <= h6const;
+					h7_my[m] <= h7const;
 				
-					l_all.a_my[m] <= h0const;
-					l_all.b_my[m] <= h1const;
-					l_all.c_my[m] <= h2const;
-					l_all.d_my[m] <= h3const;
-					l_all.e_my[m] <= h4const;
-					l_all.f_my[m] <= h5const;
-					l_all.g_my[m] <= h6const;
-					l_all.h_my[m] <= h7const;
+					a_my[m] <= h0const;
+					b_my[m] <= h1const;
+					c_my[m] <= h2const;
+					d_my[m] <= h3const;
+					e_my[m] <= h4const;
+					f_my[m] <= h5const;
+					g_my[m] <= h6const;
+					h_my[m] <= h7const;
 				end
 			offset <= 0;
 			state <= READ;
@@ -208,14 +213,14 @@ begin
 			// WORD EXPANSION errrrr
 			if (t <= 64) begin
 					  if (t < 16) begin
-							{l_all.a_my[0], l_all.b_my[0], l_all.c_my[0], l_all.d_my[0], l_all.e_my[0], l_all.f_my[0], l_all.g_my[0], l_all.h_my[0]} = sha256_op(l_all.a_my[0], l_all.b_my[0], l_all.c_my[0], l_all.d_my[0], l_all.e_my[0], l_all.f_my[0], l_all.g_my[0], l_all.h_my[0], w_my[0][t], t);
+							{a_my[0], b_my[0], c_my[0], d_my[0], e_my[0], f_my[0], g_my[0], h_my[0]} = sha256_op(a_my[0], b_my[0], c_my[0], d_my[0], e_my[0], f_my[0], g_my[0], h_my[0], w_my[0][t], t);
 					  end else begin
 							for(int x = 0; x < 15; x++) begin
 									w_my[0][x] <= w_my[0][x+1];
 							end							
 							w_my[0][15] <= wtnew(0);
 							if (t > 16) begin
-								{l_all.a_my[0], l_all.b_my[0], l_all.c_my[0], l_all.d_my[0], l_all.e_my[0], l_all.f_my[0], l_all.g_my[0], l_all.h_my[0]} = sha256_op(l_all.a_my[0], l_all.b_my[0], l_all.c_my[0], l_all.d_my[0], l_all.e_my[0], l_all.f_my[0], l_all.g_my[0], l_all.h_my[0], w_my[0][15], t-1);
+								{a_my[0], b_my[0], c_my[0], d_my[0], e_my[0], f_my[0], g_my[0], h_my[0]} = sha256_op(a_my[0], b_my[0], c_my[0], d_my[0], e_my[0], f_my[0], g_my[0], h_my[0], w_my[0][15], t-1);
 							end 
 					  end
 	
@@ -223,23 +228,23 @@ begin
 					  state <= PHASE_1;
 			end	 	
 			else begin 
-					  h_all.h0_my[0] <= h_all.h0_my[0] + l_all.a_my[0];
-					  h_all.h1_my[0] <= h_all.h1_my[0] + l_all.b_my[0];
-					  h_all.h2_my[0] <= h_all.h2_my[0] + l_all.c_my[0];
-					  h_all.h3_my[0] <= h_all.h3_my[0] + l_all.d_my[0];
-					  h_all.h4_my[0] <= h_all.h4_my[0] + l_all.e_my[0];
-					  h_all.h5_my[0] <= h_all.h5_my[0] + l_all.f_my[0];
-					  h_all.h6_my[0] <= h_all.h6_my[0] + l_all.g_my[0];
-					  h_all.h7_my[0] <= h_all.h7_my[0] + l_all.h_my[0];
+					  h0_my[0] <= h0_my[0] + a_my[0];
+					  h1_my[0] <= h1_my[0] + b_my[0];
+					  h2_my[0] <= h2_my[0] + c_my[0];
+					  h3_my[0] <= h3_my[0] + d_my[0];
+					  h4_my[0] <= h4_my[0] + e_my[0];
+					  h5_my[0] <= h5_my[0] + f_my[0];
+					  h6_my[0] <= h6_my[0] + g_my[0];
+					  h7_my[0] <= h7_my[0] + h_my[0];
 					  
-					  h_phase1[0] <= h_all.h0_my[0] + l_all.a_my[0];
-					  h_phase1[1] <= h_all.h1_my[0] + l_all.b_my[0];
-					  h_phase1[2] <= h_all.h2_my[0] + l_all.c_my[0];
-					  h_phase1[3] <= h_all.h3_my[0] + l_all.d_my[0];
-					  h_phase1[4] <= h_all.h4_my[0] + l_all.e_my[0];
-					  h_phase1[5] <= h_all.h5_my[0] + l_all.f_my[0];
-					  h_phase1[6] <= h_all.h6_my[0] + l_all.g_my[0];
-					  h_phase1[7] <= h_all.h7_my[0] + l_all.h_my[0];
+					  h_phase1[0] <= h0_my[0] + a_my[0];
+					  h_phase1[1] <= h1_my[0] + b_my[0];
+					  h_phase1[2] <= h2_my[0] + c_my[0];
+					  h_phase1[3] <= h3_my[0] + d_my[0];
+					  h_phase1[4] <= h4_my[0] + e_my[0];
+					  h_phase1[5] <= h5_my[0] + f_my[0];
+					  h_phase1[6] <= h6_my[0] + g_my[0];
+					  h_phase1[7] <= h7_my[0] + h_my[0];
 					  i <= 0;
 					  t <= 0;
 					  state <= PHASE_2_BLOCK;
@@ -278,10 +283,11 @@ begin
 				else if(y == 15) begin
 					w_my[xx][y] = 32'd640;
 					phase2_onoff <= 1;
+					state <= WRITE;
 				end									
 			end
 		end
-		if (endphase2 == 1) begin
+		if (endphase2 == 1) begin // not implemented yet!
 			$display("values here should be good phase 2 end");
 			state <= WRITE;
 		end
@@ -293,16 +299,14 @@ begin
 		 $display("---------------------------");	 
 		 $display("h0_phase1: %x", n, h_phase1[0]);
 		 $display("---------------------------");	 
-			 for(int x = 0; x < 15; x++) begin
-					$display("wmy[0][%x]: %x", x,w_my[0][x]);
-					
-					
-			 end
+			for (int xx = 0; xx < 15; xx++) begin
+				for(int x = 0; x < 15; x++) begin
+						$display("wmy[%x][%x]: %x", xx,x,w_my[xx][x]);
+				 end
+			end
 			 for(int x = 0; x < 15; x++) begin
 					$display("h_phase1[%x]: %x", x,h_phase1[x]);
 			 end
-			 done <= 1;
-		 
 	end 
 	
 	
