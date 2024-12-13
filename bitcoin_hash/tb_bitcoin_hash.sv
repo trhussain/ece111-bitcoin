@@ -239,14 +239,16 @@ begin
         h5[n] = h5[n] + f;
         h6[n] = h6[n] + g;
         h7[n] = h7[n] + h;
+		  $display("tb a over here going in:%x", a);
+
     end
 
-    
 // 3. COMPUTE SECOND HASH FOR EACH NONCE
     for (n = 0; n < NUM_NONCES; n++) begin
 
         // WORD EXPANSION
 
+	
         w[0] = h0[n];
         w[1] = h1[n];
         w[2] = h2[n];
@@ -255,14 +257,22 @@ begin
         w[5] = h5[n];
         w[6] = h6[n];
         w[7] = h7[n];
+		  
+		  
 
         w[8] = 32'h80000000; // padding
         for (t = 9; t < 15; t++) begin
             w[t] = 32'h00000000;
         end
         w[15] = 32'd256; // SIZE = 256 BITS
-
-		  
+		  if (n == 0) begin
+			  $display("--------------------------------");
+			  $display("TB Nonce value: %x", n);
+			  for (int i = 0; i < 16; i++) begin
+					 $display("w[%0d] = %h", i, w[i]);
+				end
+				$display("a before going in:%x", a);
+		  end
         for (t = 16; t < 64; t++) begin
             s0 = rightrotate(w[t-15], 7) ^ rightrotate(w[t-15], 18) ^ (w[t-15] >> 3);
             s1 = rightrotate(w[t-2], 17) ^ rightrotate(w[t-2], 19) ^ (w[t-2] >> 10);

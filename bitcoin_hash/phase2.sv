@@ -1,20 +1,18 @@
-
-
 module phase2(
     input  logic        clk,
     input  logic        reset_n,
     input  logic        start,
-	 input  logic [31:0]       nonce_value,
-	 input  logic [31:0]       on_off,
+    input  logic [31:0] nonce_value,
+    input  logic [31:0] on_off,
     input  logic [31:0] w_in[16][16],    // Input array (row of w_in)
-	 input  logic   [31:0] hphase1[8],
-    
-
-    output logic         done
+    input  logic [31:0] hphase1[8],
+    output logic        finished,
+	 output logic [31:0] w_output[16],
+    output logic [31:0] hX_my_loc[8]
 );
     logic [31:0] w_temp, h_temp;
 int t = -1;
-int local_onoff = 1;
+int local_onoff = 0; // Drive the output port with this internal signal
 parameter int k[64] = '{
     32'h428a2f98,32'h71374491,32'hb5c0fbcf,32'he9b5dba5,32'h3956c25b,32'h59f111f1,32'h923f82a4,32'hab1c5ed5,
     32'hd807aa98,32'h12835b01,32'h243185be,32'h550c7dc3,32'h72be5d74,32'h80deb1fe,32'h9bdc06a7,32'hc19bf174,
@@ -80,10 +78,12 @@ logic [31:0] h_my_loc;
 
 always_ff @(posedge clk or negedge reset_n) begin
     if (!reset_n) begin
+	     finished <=0;
 		  t <= -1;
-		  
+		  local_onoff <= 1; 
      end else if (on_off && local_onoff) begin
 			if (t == -1) begin
+				finished <= 0;
 			   w_internal[0] = w_in[nonce_value][0]; // assigning w internal, w_in already blockified 
 			   w_internal[1] = w_in[nonce_value][1]; 
 				w_internal[2] = w_in[nonce_value][2];
@@ -122,6 +122,15 @@ always_ff @(posedge clk or negedge reset_n) begin
 
 			end
 			else if (t <= 64) begin
+			            if ((t == 0 || t == 1 || t ==2) && nonce_value == 0) begin
+					  $display("--------------------------------");
+					  $display("MY %X Phase2 Nonce value: %x", t,nonce_value);
+					  for (int ii = 0; ii < 16; ii++) begin
+							 $display("w_internal[%0d] = %h", ii, w_internal[ii]);
+					  end
+					  $display("a value: %x", a_my_loc);
+
+				end
 					  if (t < 16) begin
 
 
@@ -129,7 +138,7 @@ always_ff @(posedge clk or negedge reset_n) begin
 
 					  end 
 					  else begin
-						  for(int x = 0; x < 16; x++) begin
+						  for(int x = 0; x < 15; x++) begin
 										w_internal[x] <= w_internal[x+1];
 						  end							
 						  w_internal[15] <= wtnew(0);
@@ -137,12 +146,8 @@ always_ff @(posedge clk or negedge reset_n) begin
 								{a_my_loc, b_my_loc, c_my_loc, d_my_loc, e_my_loc, f_my_loc, g_my_loc, h_my_loc} = sha256_op(a_my_loc, b_my_loc, c_my_loc, d_my_loc, e_my_loc, f_my_loc, g_my_loc, h_my_loc, w_internal[15], t-1);
 						  end 
 					  end
-						if (nonce_value == 15) begin
-						$display("t: %x", t);
-			
-						$display("a_my_loc: %x",a_my_loc);
-						$display("w internal: %x", w_internal[15]);
-						end
+
+					  
 
 			       t <= t + 1; // Increment t for the next clock cycle
 		   end
@@ -156,12 +161,35 @@ always_ff @(posedge clk or negedge reset_n) begin
 				h5_my_loc <= h5_my_loc + f_my_loc;
 				h6_my_loc <= h6_my_loc + g_my_loc;
 				h7_my_loc <= h7_my_loc + h_my_loc;
-				$display("-----------------------------------");
-				$display("nonce(%x): a(last) %x", nonce_value, a_my_loc);
-				$display("w internal: %x", w_internal[15]);
+				w_output[0] <= w_internal[0];
+				w_output[1] <= w_internal[1];
+				w_output[2] <= w_internal[2];
+				w_output[3] <= w_internal[3];
+				w_output[4] <= w_internal[4];
+				w_output[5] <= w_internal[5];
+				w_output[6] <= w_internal[6];
+				w_output[7] <= w_internal[7];
+				w_output[8] <= w_internal[8];
+				w_output[9] <= w_internal[9];
+				w_output[10] <= w_internal[10];
+				w_output[11] <= w_internal[11];
+				w_output[12] <= w_internal[12];
+				w_output[13] <= w_internal[13];
+				w_output[14] <= w_internal[14];
+				w_output[15] <= w_internal[15];
+
+				hX_my_loc[0] <= h0_my_loc + a_my_loc;
+				hX_my_loc[1] <= h1_my_loc + b_my_loc;
+				hX_my_loc[2] <= h2_my_loc + c_my_loc;
+				hX_my_loc[3] <= h3_my_loc + d_my_loc;
+				hX_my_loc[4] <= h4_my_loc + e_my_loc;
+				hX_my_loc[5] <= h5_my_loc + f_my_loc;
+				hX_my_loc[6] <= h6_my_loc + g_my_loc;
+				hX_my_loc[7] <= h7_my_loc + h_my_loc;
 
 				local_onoff <= 0;
 				//on_off <= 0;
+				finished <= 1;
 		   end
 	  
     end else begin // when its off 
@@ -172,3 +200,6 @@ end
 
 
 endmodule
+
+
+

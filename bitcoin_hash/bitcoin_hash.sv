@@ -28,9 +28,12 @@ logic [31:0] f_my[num_nonces];
 logic [31:0] g_my[num_nonces];
 logic [31:0] h_my[num_nonces];
 
+logic [31:0] w2_outputs[num_nonces][16];
+logic [31:0] h_phase2[num_nonces][8];
+logic [31:0] h_phase3[num_nonces][8];
 
-
-logic [num_nonces-1:0] done_flags;
+logic   done_flags_phase2[num_nonces];
+logic   done_flags_phase3[num_nonces];
 
 logic   [31:0] h_phase1[8];
 
@@ -61,7 +64,8 @@ logic [31:0] message[20]; // read in the input data given message_addr and offse
 
 int m, n, t, i,x;
 int phase2_onoff = 0;
-int endphase2 = 0;
+logic phase3_onoff = 0;
+
 int nonce_counter = 0;
 
 logic        cur_we;
@@ -130,14 +134,19 @@ generate
 				 .on_off(phase2_onoff),
 				 .w_in(w_my),
 				 .hphase1(h_phase1),
-
-
-				 
-
-
-				 .done()
+				 .finished(done_flags_phase2[q]),
+             .w_output(w2_outputs[q]),
+             .hX_my_loc(h_phase2[q])				 
 			);
-
+			phase3 phase3_inst ( 
+				 .clk(clk),
+				 .reset_n(reset_n),			
+				 .nonce_value(q),
+				 .on_off(phase3_onoff),
+             .hphase2(h_phase2[q]),
+				 .finished(done_flags_phase3[q]),
+				 .hphase3(h_phase3[q])
+			);
         initial begin
             $display("Instantiated phase2 for nonce: %x", q);
         end
@@ -163,6 +172,7 @@ begin
 				phase2_onoff <=0;
             cur_we <= 0; 
 			   cur_addr <= message_addr; 
+				
 				for(int m=0; m<num_nonces; m++) begin
 					h0_my[m] <= h0const;
 					h1_my[m] <= h1const;
@@ -248,12 +258,7 @@ begin
 					  i <= 0;
 					  t <= 0;
 					  state <= PHASE_2_BLOCK;
-					  // about 94 cycles up till this point... phase 2 & 3 are minimum 128 cycles, tf...? okay not to mention frequency...
-			   		for (int xx = 0; xx < 15; xx++) begin
-							for(int x = 0; x < 15; x++) begin
-									$display("PH1 wmy[%x][%x]: %x", xx,x,w_my[xx][x]);
-							 end
-						end
+
 		  end
 			
 	end	
@@ -271,46 +276,62 @@ begin
 	// okay blockification first
 
 		// while phase2 is still going, keep phase2 flag high
-		
-		for(int xx = 0; xx < num_nonces; xx++)begin
-			for(int y = 0; y < 16; y++)begin
-				if (y < 3) begin 
-					w_my[xx][y] <= message[y+16]; // to be replaced by nonce value (? check this)
+		if (phase2_onoff == 0) begin
+			for(int xx = 0; xx < num_nonces; xx++)begin
+				for(int y = 0; y < 16; y++)begin
+					if (y < 3) begin 
+						w_my[xx][y] <= message[y+16]; // to be replaced by nonce value (? check this)
+					end
+					else if (y==3) begin
+						w_my[xx][3] <= 32'h00000000; // REPLACED BY NONCE VALUE 
+					end
+					else if (y == 4) begin 
+						w_my[xx][4] <= 32'h80000000; // 1 padding
+					end
+					else if(y>4 && y<15) begin
+						w_my[xx][y] <= 0;
+					end
+					else if(y == 15) begin
+						w_my[xx][y] = 32'd640;
+						phase2_onoff <= 1; // tells phase2 blocks to start!! 
+						state <= PHASE_2_BLOCK;
+					end									
 				end
-				else if (y==3) begin
-					w_my[xx][3] <= 32'h00000000; // REPLACED BY NONCE VALUE 
-				end
-				else if (y == 4) begin 
-					w_my[xx][4] <= 32'h80000000; // 1 padding
-				end
-				else if(y>4 && y<15) begin
-					w_my[xx][y] <= 0;
-				end
-				else if(y == 15) begin
-					w_my[xx][y] = 32'd640;
-					phase2_onoff <= 1;
-					state <= WRITE;
-				end									
 			end
 		end
-		if (endphase2 == 1) begin
-			$display("values here should be good phase 2 end");
-			state <= WRITE;
+		if (done_flags_phase2[1] == 1) begin
+
+			state <= PHASE_3;
 		end
 	end 
+	
+	PHASE_3: begin
+		phase3_onoff <= 1; 
+		if (done_flags_phase3[1] == 1) begin
+			//phase3_onoff <= 0; 
+
+			state <= WRITE;
+		end
+		else begin 
+			state <= PHASE_3;
+		end
+	
+	end
 	WRITE: begin 
 	 
 //		 $display("My hash results");
-//		 $display("Phase 1 Data");
-//		 $display("---------------------------");	 	 
-//			for (int xx = 0; xx < 15; xx++) begin
-//				for(int x = 0; x < 15; x++) begin
-//						$display("wmy[%x][%x]: %x", xx,x,w_my[xx][x]);
+//		 $display("Phase 2 Data");
+////		 $display("---------------------------");	 	 
+////			for (int xx = 0; xx < 15; xx++) begin
+////				for(int x = 0; x < 15; x++) begin
+////						$display("wmy[%x][%x]: %x", xx,x,w_my[xx][x]);
+////				 end
+////			end
+//				 for(int x = 0; x < 15; x++) begin
+//						$display("h_phase1[%x]: %x", x,h_phase1[x]);
 //				 end
-//			end
-//			 for(int x = 0; x < 15; x++) begin
-//					$display("h_phase1[%x]: %x", x,h_phase1[x]);
-//			 end
+			 done <= 1;
+		   
 		 
 	end 
 	
