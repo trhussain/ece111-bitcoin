@@ -65,7 +65,7 @@ logic [31:0] message[20]; // read in the input data given message_addr and offse
 int m, n, t, i,x;
 int phase2_onoff = 0;
 logic phase3_onoff = 0;
-
+int zz = 0;
 int nonce_counter = 0;
 
 logic        cur_we;
@@ -309,7 +309,7 @@ begin
 		phase3_onoff <= 1; 
 		if (done_flags_phase3[1] == 1) begin
 			//phase3_onoff <= 0; 
-
+			offset <= 0;
 			state <= WRITE;
 		end
 		else begin 
@@ -327,11 +327,37 @@ begin
 ////						$display("wmy[%x][%x]: %x", xx,x,w_my[xx][x]);
 ////				 end
 ////			end
-//				 for(int x = 0; x < 15; x++) begin
-//						$display("h_phase1[%x]: %x", x,h_phase1[x]);
-//				 end
-			 done <= 1;
-		   
+			cur_we <= 1;
+			cur_addr <= output_addr - 1;
+			 for(int x = 0; x <= 15; x++) begin
+				$display("h_phase1[%x][0]: %x", x,h_phase3[x][0]);
+		    end
+				if (zz <= 15) begin 
+					case (zz) 
+						0: begin
+							mem_write_data <= h_phase3[0][0];
+						end
+						1: begin
+							mem_write_data <= h_phase3[1][0];
+						end
+						2: begin
+							mem_write_data <= h_phase3[2][0];
+						end
+						3: begin
+							mem_write_data <= h_phase3[3][0];
+						end						
+					endcase
+					cur_addr <= output_addr;
+					cur_we <= 1;
+					offset <= zz;
+					zz <= zz + 1;
+					state <= WRITE;
+				end
+	   else begin
+					 done <= 1;
+
+			state <= IDLE;
+	   end		   
 		 
 	end 
 	

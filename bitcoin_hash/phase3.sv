@@ -153,6 +153,7 @@ always_ff @(posedge clk or negedge reset_n) begin
         for (int i = 0; i < 8; i++) begin
             hphase3[i] <= hphase3[i];
         end
+		  
     end
 end
 
