@@ -5,7 +5,7 @@ module phase3(
 	 input  logic        on_off,
     input  logic [31:0] hphase2[8],
     output logic        finished,
-    output logic [31:0] hphase3[8]
+    output logic [31:0] hphase3
 );
 
 
@@ -107,15 +107,7 @@ always_ff @(posedge clk or negedge reset_n) begin
 
 		  end 
         else if (t <= 64) begin
-            if ((t == 0 || t == 1 || t ==2) && nonce_value == 0) begin
-					  $display("--------------------------------");
-					  $display("MY %X Phase3 Nonce value: %x", t,nonce_value);
-					  for (int ii = 0; ii < 16; ii++) begin
-							 $display("w_3[%0d] = %h", ii, w_3[ii]);
-					  end
-					  $display("a value: %x", a_my_loc);
 
-				end
             if (t < 16) begin
                 {a_my_loc, b_my_loc, c_my_loc, d_my_loc, e_my_loc, f_my_loc, g_my_loc, h_my_loc} = sha256_op(a_my_loc, b_my_loc, c_my_loc, d_my_loc, e_my_loc, f_my_loc, g_my_loc, h_my_loc, w_3[t], t);
             end else begin
@@ -131,22 +123,16 @@ always_ff @(posedge clk or negedge reset_n) begin
             t <= t + 1; // Increment t for the next clock cycle
         end else begin
             // Update hphase3 values when t > 64
-            hphase3[0] <= 32'h6a09e667 + a_my_loc;
-            hphase3[1] <= 32'hbb67ae85 + b_my_loc;
-            hphase3[2] <= 32'h3c6ef372 + c_my_loc;
-            hphase3[3] <= 32'ha54ff53a + d_my_loc;
-            hphase3[4] <= 32'h510e527f + e_my_loc;
-            hphase3[5] <= 32'h9b05688c + f_my_loc;
-            hphase3[6] <= 32'h1f83d9ab + g_my_loc;
-            hphase3[7] <= 32'h5be0cd19 + h_my_loc;
+            hphase3 <= 32'h6a09e667 + a_my_loc;
+//            hphase3[1] <= 32'hbb67ae85 + b_my_loc;
+//            hphase3[2] <= 32'h3c6ef372 + c_my_loc;
+//            hphase3[3] <= 32'ha54ff53a + d_my_loc;
+//            hphase3[4] <= 32'h510e527f + e_my_loc;
+//            hphase3[5] <= 32'h9b05688c + f_my_loc;
+//            hphase3[6] <= 32'h1f83d9ab + g_my_loc;
+//            hphase3[7] <= 32'h5be0cd19 + h_my_loc;
             finished <= 1;
-				if (nonce_value == 0) begin
-					  for (int ii = 0; ii < 8; ii++) begin
-					  
-							 $display("hphase3[%0d] = %h", ii, hphase3[ii]);
-							
-						end
-				end
+
         end
     end else begin
         // Default values for hphase3 in case on_off is not set

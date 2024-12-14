@@ -30,7 +30,7 @@ logic [31:0] h_my[num_nonces];
 
 logic [31:0] w2_outputs[num_nonces][16];
 logic [31:0] h_phase2[num_nonces][8];
-logic [31:0] h_phase3[num_nonces][8];
+logic [31:0] h_phase3[num_nonces];
 
 logic   done_flags_phase2[num_nonces];
 logic   done_flags_phase3[num_nonces];
@@ -76,6 +76,8 @@ logic [31:0] cur_write_data;
 assign mem_clk = clk;
 assign mem_addr = cur_addr + offset;
 assign mem_we = cur_we;
+assign mem_write_data = cur_write_data;
+
 parameter int k[64] = '{
     32'h428a2f98,32'h71374491,32'hb5c0fbcf,32'he9b5dba5,32'h3956c25b,32'h59f111f1,32'h923f82a4,32'hab1c5ed5,
     32'hd807aa98,32'h12835b01,32'h243185be,32'h550c7dc3,32'h72be5d74,32'h80deb1fe,32'h9bdc06a7,32'hc19bf174,
@@ -308,8 +310,10 @@ begin
 	PHASE_3: begin
 		phase3_onoff <= 1; 
 		if (done_flags_phase3[1] == 1) begin
-			//phase3_onoff <= 0; 
+			phase3_onoff <= 0; 
 			offset <= 0;
+			i <= 0;
+			zz <= 0;
 			state <= WRITE;
 		end
 		else begin 
@@ -317,51 +321,21 @@ begin
 		end
 	
 	end
-	WRITE: begin 
-	 
-//		 $display("My hash results");
-//		 $display("Phase 2 Data");
-////		 $display("---------------------------");	 	 
-////			for (int xx = 0; xx < 15; xx++) begin
-////				for(int x = 0; x < 15; x++) begin
-////						$display("wmy[%x][%x]: %x", xx,x,w_my[xx][x]);
-////				 end
-////			end
-			cur_we <= 1;
-			cur_addr <= output_addr - 1;
-			 for(int x = 0; x <= 15; x++) begin
-				$display("h_phase1[%x][0]: %x", x,h_phase3[x][0]);
-		    end
-				if (zz <= 15) begin 
-					case (zz) 
-						0: begin
-							mem_write_data <= h_phase3[0][0];
-						end
-						1: begin
-							mem_write_data <= h_phase3[1][0];
-						end
-						2: begin
-							mem_write_data <= h_phase3[2][0];
-						end
-						3: begin
-							mem_write_data <= h_phase3[3][0];
-						end						
-					endcase
-					cur_addr <= output_addr;
-					cur_we <= 1;
-					offset <= zz;
-					zz <= zz + 1;
-					state <= WRITE;
-				end
-	   else begin
-					 done <= 1;
+	WRITE: begin
+	   if (i <= 15) begin 
+			cur_write_data <= h_phase3[i];
 
+			cur_addr <= output_addr;
+			cur_we <= 1;
+			offset <= i;
+			i <= i + 1;
+			state <= WRITE;
+		end
+	   else begin
+			done <= 1;
 			state <= IDLE;
-	   end		   
-		 
-	end 
-	
-	
+	   end
+	end
 	
 	
 	
